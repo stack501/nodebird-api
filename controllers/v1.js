@@ -1,4 +1,6 @@
 const Domain = require("../models/domain");
+const Hashtag = require("../models/hashtag");
+const Post = require("../models/post");
 const User = require("../models/user");
 const jwt = require('jsonwebtoken');
 
@@ -43,4 +45,51 @@ exports.createToken = async (req, res) => {
 }
 exports.tokenTest = async (req, res) => {
     res.json(res.locals.decoded);
+}
+
+exports.getMyPosts = async (req, res) => {
+    try {
+        const posts = await Post.findAll({
+            where: { userId: res.locals.decoded.id }
+        });
+
+        return res.json({
+            code: 200,
+            payload: posts
+        });
+    } catch (error) {
+        return res.status(500).json({
+            code: 500,
+            message: '서버 에러',
+        });
+    }
+}
+
+exports.getPostsByHashtag = async (req, res) => {
+    try {
+        const hashtag = await Hashtag.findOne({ where: { title: req.params.title } });
+        if(!hashtag) {
+            return res.status(404).json({
+                code: 404,
+                message: '검색 결과가 없습니다.',
+            });
+        }
+        const posts = await hashtag.getPosts();
+        if(posts.length === 0) {
+            return res.status(404).json({
+                code: 404,
+                message: '검색 결과가 없습니다.',
+            });
+        }
+        return res.json({
+            code: 200,
+            payload: posts,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            code: 500,
+            message: '서버 에러',
+        });
+    }
 }
